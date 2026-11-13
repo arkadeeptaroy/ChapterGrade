@@ -1,4 +1,5 @@
 import './styles.css';
+import './redesign.css';
 import {spache} from 'spache';
 import {daleChall} from 'dale-chall';
 import {analyzeReadability, formulaForGrade, tokenize} from './analysis.js';
