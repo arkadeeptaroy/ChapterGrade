@@ -1,13 +1,19 @@
 /** Browser-only extraction: never transmits uploaded file bytes. */
-export const MAX_FILE_BYTES = 40 * 1024 * 1024;
+export const MAX_PDF_BYTES = 800 * 1024 * 1024;
+export const MAX_OTHER_BYTES = 40 * 1024 * 1024;
+export const MAX_FILE_BYTES = MAX_PDF_BYTES; // Legacy export; PDF-specific limit.
+export function maxFileBytes(extension) {
+  return extension === 'pdf' ? MAX_PDF_BYTES : MAX_OTHER_BYTES;
+}
 const MAX_PDF_PAGES = 250;
 
 export async function extractFile(file, onProgress = () => {}) {
   if (!(file instanceof File)) throw new Error('Choose a chapter file.');
-  if (file.size > MAX_FILE_BYTES) throw new Error('File exceeds the 40 MB limit. Split the document into chapter-sized PDFs.');
   if (file.size === 0) throw new Error('The file is empty.');
   const extension = (file.name.split('.').pop() || '').toLowerCase();
   if (!['pdf', 'docx', 'txt', 'text'].includes(extension)) throw new Error('Only PDF, DOCX and TXT files are supported.');
+  const limit = maxFileBytes(extension);
+  if (file.size > limit) throw new Error(`File exceeds the ${extension === 'pdf' ? '800' : '40'} MB ${extension.toUpperCase()} limit.`);
   onProgress('Reading your file…');
 
   if (extension === 'txt' || extension === 'text') {
@@ -28,7 +34,27 @@ export async function extractFile(file, onProgress = () => {}) {
     import('pdfjs-dist/build/pdf.worker.min.mjs?url')
   ]);
   pdfjs.GlobalWorkerOptions.workerSrc = worker.default;
-  const loading = pdfjs.getDocument({data: new Uint8Array(await file.arrayBuffer()), useSystemFonts: true});
+  // Fetch PDF byte ranges from the File instead of buffering an 800 MB file at once.
+  // PDF.js requests only the ranges necessary to parse and extract text.
+  class LocalPDFRangeTransport extends pdfjs.PDFDataRangeTransport {
+    constructor(localFile) {
+      super(localFile.size, new Uint8Array(0));
+      this.localFile = localFile;
+    }
+    requestDataRange(begin, end) {
+      this.localFile.slice(begin, end).arrayBuffer()
+        .then(bytes => this.onDataRange(begin, new Uint8Array(bytes)))
+        .catch(error => console.error('PDF range read failed:', error));
+    }
+  }
+  const transport = new LocalPDFRangeTransport(file);
+  const loading = pdfjs.getDocument({
+    range: transport,
+    rangeChunkSize: 256 * 1024,
+    disableAutoFetch: true,
+    disableStream: true,
+    useSystemFonts: true
+  });
   let document;
   try {
     document = await loading.promise;

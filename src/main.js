@@ -1,5 +1,4 @@
 import './styles.css';
-import './redesign.css';
 import {spache} from 'spache';
 import {daleChall} from 'dale-chall';
 import {analyzeReadability, formulaForGrade, tokenize} from './analysis.js';
@@ -224,5 +223,21 @@ $('show-more').addEventListener('click', () => {if(state.analysis){state.expande
 $('download-csv').addEventListener('click', downloadCSV);
 $('download-json').addEventListener('click', downloadJSON);
 $('print-report').addEventListener('click', () => {if(state.analysis)window.print();});
+$('reset-btn').addEventListener('click', () => {
+  ++state.requestId;
+  state.sourceName = '';
+  state.sourceType = 'PASTED TEXT';
+  state.extractedWarnings = [];
+  $('file-input').value = '';
+  $('chapter-text').value = '';
+  $('chapter-text').disabled = false;
+  $('text-editor-wrap').classList.add('hidden');
+  $('source-meta').classList.add('hidden');
+  $('grade-select').value = '5';
+  $('method-select').value = 'auto';
+  updateMethod();
+  updateTextCount();
+  window.scrollTo({top: 0, behavior: 'smooth'});
+});
 updateMethod();
 updateTextCount();
