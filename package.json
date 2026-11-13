@@ -11,6 +11,7 @@
     "test": "node --test tests/*.test.js"
   },
   "dependencies": {
+    "cal-sans": "^2.1.1",
     "dale-chall": "^2.0.0",
     "mammoth": "^1.12.2",
     "pdfjs-dist": "^5.4.0",

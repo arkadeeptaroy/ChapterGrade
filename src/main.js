@@ -1,3 +1,4 @@
+import 'cal-sans';
 import './styles.css';
 import {spache} from 'spache';
 import {daleChall} from 'dale-chall';
@@ -10,7 +11,7 @@ const familiarLists = {
   'dale-chall': new Set(daleChall.map(w => w.toLowerCase()))
 };
 const MAX_TEXT_CHARS = 1000000;
-const state = {sourceName: '', sourceType: 'PASTED TEXT', extractedWarnings: [], analysis: null, expanded: false, requestId: 0};
+const state = {sourceName: '', sourceType: 'PASTED TEXT', extractedWarnings: [], analysis: null, expanded: false, requestId: 0, processing: false, analysing: false};
 const nf = new Intl.NumberFormat('en');
 const escapeHTML = value => String(value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
@@ -24,7 +25,33 @@ function toast(message, isError = false) {
 }
 function showEditor() {
   $('text-editor-wrap').classList.remove('hidden');
-  $('paste-toggle').innerHTML = '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M6 3.5h8M6.5 6H5a1.5 1.5 0 0 0-1.5 1.5v9A1.5 1.5 0 0 0 5 18h10a1.5 1.5 0 0 0 1.5-1.5v-9A1.5 1.5 0 0 0 15 6h-1.5M7 2h6v4H7z" fill="none" stroke="currentColor" stroke-width="1.5"/></svg> Edit the reading passage <span class="action-arrow">↗</span>';
+  $('paste-toggle').querySelector('span').textContent = 'Edit chapter text';
+}
+function setDrawer(open, focus = false) {
+  $('upload-drawer').classList.toggle('open', open);
+  $('drawer-backdrop').classList.toggle('open', open);
+  document.body.classList.toggle('drawer-open', open);
+  if (open && focus) requestAnimationFrame(() => $('dropzone').focus());
+  if (!open && focus) $('reset-btn').focus();
+}
+function setProcessing(busy, message = '') {
+  state.processing = busy;
+  $('extraction-feedback').classList.toggle('hidden', !busy);
+  if (busy) $('extraction-label').textContent = message || 'Reading chapter…';
+  $('dropzone').classList.toggle('is-loading', busy);
+  updateAnalyzeButton();
+}
+function updateAnalyzeButton() {
+  const count = tokenize($('chapter-text').value).length;
+  $('analyze-btn').disabled = count < 30 || state.processing || state.analysing;
+  $('analyze-label').textContent = state.analysing ? 'Analysing chapter…' : 'Analyse chapter';
+  $('analyze-arrow').classList.toggle('hidden', state.analysing);
+  $('analyze-spinner').classList.toggle('hidden', !state.analysing);
+  $('analysis-helper').textContent = state.processing
+    ? 'Extracting text. Large PDFs can take longer to read.'
+    : state.analysing ? 'Calculating the readability score.'
+    : count < 30 ? 'Upload a chapter or paste at least 30 words.'
+    : `${nf.format(count)} words ready to analyse`;
 }
 function currentMethod() {
   const selected = $('method-select').value;
@@ -47,24 +74,28 @@ function updateMethod() {
 function updateTextCount() {
   const count = tokenize($('chapter-text').value).length;
   $('text-count').textContent = `${nf.format(count)} word${count === 1 ? '' : 's'}`;
-  $('analyze-btn').disabled = count < 30;
+  updateAnalyzeButton();
   clearReport();
 }
 function clearReport() {
   state.analysis = null;
   state.expanded = false;
   $('report').classList.add('hidden');
-  $('empty-state').classList.remove('hidden');
+  $('results-section').classList.add('hidden');
+  $('assessment-row').classList.add('hidden');
+  $('list-empty').classList.remove('hidden');
+  $('assessment-count').textContent = '0 chapters';
 }
 function setSourceMeta(primary, secondary, busy = false) {
   const meta = $('source-meta');
   meta.classList.remove('hidden');
   meta.classList.toggle('busy', busy);
   meta.innerHTML = `<strong>${escapeHTML(primary)}</strong><small>${escapeHTML(secondary)}</small>`;
+  if (busy) setProcessing(true, secondary);
 }
 async function loadFile(file) {
   const id = ++state.requestId;
-  $('analyze-btn').disabled = true;
+  setProcessing(true, 'Preparing text extraction…');
   clearReport();
   state.sourceName = file.name;
   setSourceMeta(file.name, 'Preparing text extraction…', true);
@@ -81,6 +112,7 @@ async function loadFile(file) {
     $('chapter-text').value = large ? data.text.slice(0, MAX_TEXT_CHARS) : data.text;
     if (large) state.extractedWarnings.push('Text was limited to the first 1,000,000 characters to protect browser performance.');
     setSourceMeta(`${file.name} · ${data.kind}`, `${data.detail} · ${nf.format(tokenize($('chapter-text').value).length)} words extracted${data.warnings.length ? ' · Review extraction notes in report' : ''}`);
+    setProcessing(false);
     updateTextCount();
     if (tokenize($('chapter-text').value).length < 30) toast('Less than 30 words extracted. Try copying the passage directly.', true);
     else toast('Text extracted. Review it, then analyse.');
@@ -91,7 +123,10 @@ async function loadFile(file) {
     setSourceMeta('Could not read file', error.message || 'Extraction failed');
     toast(error.message || 'Extraction failed.', true);
   } finally {
-    if (id === state.requestId) $('chapter-text').disabled = false;
+    if (id === state.requestId) {
+      $('chapter-text').disabled = false;
+      setProcessing(false);
+    }
   }
 }
 function gradeBandDisplay(result) {
@@ -129,8 +164,19 @@ function renderVocabulary(result) {
   button.innerHTML = state.expanded ? 'Show fewer words <span>↑</span>' : `Show all ${nf.format(result.unfamiliar.length)} unfamiliar words <span>↓</span>`;
 }
 function renderResult(result) {
-  $('empty-state').classList.add('hidden');
+  $('results-section').classList.remove('hidden');
   $('report').classList.remove('hidden');
+  $('list-empty').classList.add('hidden');
+  $('assessment-row').classList.remove('hidden');
+  $('assessment-count').textContent = '1 chapter';
+  $('row-file').textContent = state.sourceName || 'Pasted chapter';
+  $('row-date').textContent = new Date().toLocaleDateString('en-GB', {day:'numeric', month:'short', year:'numeric'});
+  $('row-grade').textContent = `Grade ${result.grade}`;
+  $('row-method').textContent = result.method === 'spache' ? 'Spache' : 'Dale–Chall';
+  $('row-status').className = `row-outcome ${result.suitability.status}`;
+  $('row-status').textContent = result.suitability.label;
+  $('results-description').textContent = `Grade ${result.grade} · ${state.sourceName || 'Pasted reading passage'}`;
+
   $('report-date').textContent = new Date().toLocaleDateString('en-GB', {day:'2-digit',month:'short',year:'numeric'}).toUpperCase();
   $('report-file').textContent = state.sourceName || 'Pasted reading passage';
   $('report-grade').textContent = `Grade ${result.grade} assessment`;
@@ -155,7 +201,12 @@ function renderResult(result) {
   $('long-sentences').innerHTML = result.longestSentences.map((s,i) => `<div class="sentence-item"><div class="sentence-item-header"><span>SENTENCE ${i+1}</span><b>${s.words} WORDS</b></div><p>${escapeHTML(s.sentence)}</p></div>`).join('');
   $('report-method-note').textContent = result.methodNote + ' Values are estimates, not a complete editorial or curriculum quality review.';
 }
-function runAnalysis() {
+async function runAnalysis() {
+  if (state.analysing || state.processing) return;
+  state.analysing = true;
+  updateAnalyzeButton();
+  // Yield a paint so users see the busy state on longer documents.
+  await new Promise(resolve => setTimeout(resolve, 35));
   try {
     const grade = Number($('grade-select').value);
     const method = currentMethod();
@@ -164,9 +215,14 @@ function runAnalysis() {
     state.analysis = result;
     state.expanded = false;
     renderResult(result);
-    if (window.innerWidth < 800) $('results-panel').scrollIntoView({behavior:'smooth', block:'start'});
+    setDrawer(false);
+    requestAnimationFrame(() => $('results-section').scrollIntoView({behavior: 'smooth', block: 'start'}));
+    toast('Readability report ready.');
   } catch (error) {
     toast(error.message || 'Could not analyse chapter.', true);
+  } finally {
+    state.analysing = false;
+    updateAnalyzeButton();
   }
 }
 function downloadFile(filename, content, mime) {
@@ -223,21 +279,52 @@ $('show-more').addEventListener('click', () => {if(state.analysis){state.expande
 $('download-csv').addEventListener('click', downloadCSV);
 $('download-json').addEventListener('click', downloadJSON);
 $('print-report').addEventListener('click', () => {if(state.analysis)window.print();});
-$('reset-btn').addEventListener('click', () => {
+function resetAssessment() {
   ++state.requestId;
   state.sourceName = '';
   state.sourceType = 'PASTED TEXT';
   state.extractedWarnings = [];
+  state.processing = false;
+  state.analysing = false;
   $('file-input').value = '';
   $('chapter-text').value = '';
   $('chapter-text').disabled = false;
   $('text-editor-wrap').classList.add('hidden');
+  $('paste-toggle').querySelector('span').textContent = 'Paste chapter text';
   $('source-meta').classList.add('hidden');
+  $('extraction-feedback').classList.add('hidden');
   $('grade-select').value = '5';
   $('method-select').value = 'auto';
   updateMethod();
   updateTextCount();
-  window.scrollTo({top: 0, behavior: 'smooth'});
+  $('workspace').classList.remove('hidden');
+  $('methods').classList.add('hidden');
+  $('nav-workspace').classList.add('active');
+  $('nav-methods').classList.remove('active');
+  setDrawer(true, true);
+}
+$('reset-btn').addEventListener('click', resetAssessment);
+$('open-upload-inline').addEventListener('click', () => setDrawer(true, true));
+$('drawer-close').addEventListener('click', () => setDrawer(false, true));
+$('drawer-backdrop').addEventListener('click', () => setDrawer(false));
+$('view-report-btn').addEventListener('click', () => $('results-section').scrollIntoView({behavior: 'smooth', block: 'start'}));
+$('nav-methods').addEventListener('click', () => {
+  setDrawer(false);
+  $('nav-workspace').classList.remove('active');
+  $('nav-methods').classList.add('active');
+  $('workspace').classList.add('hidden');
+  $('methods').classList.remove('hidden');
+});
+$('nav-workspace').addEventListener('click', () => {
+  setDrawer(false);
+  $('nav-methods').classList.remove('active');
+  $('nav-workspace').classList.add('active');
+  $('workspace').classList.remove('hidden');
+  $('methods').classList.add('hidden');
+});
+document.addEventListener('keydown', event => {
+  if (event.key === 'Escape' && $('upload-drawer').classList.contains('open')) setDrawer(false, true);
 });
 updateMethod();
 updateTextCount();
+setDrawer(true);
