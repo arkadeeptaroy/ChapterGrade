@@ -1,0 +1,23 @@
+{
+  "name": "chaptergrade",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Privacy-first Spache and Dale-Chall chapter readability scorer",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "vite build",
+    "preview": "vite preview --host 0.0.0.0",
+    "test": "node --test tests/*.test.js"
+  },
+  "dependencies": {
+    "dale-chall": "^2.0.0",
+    "mammoth": "^1.12.2",
+    "pdfjs-dist": "^5.4.0",
+    "spache": "^2.0.0"
+  },
+  "devDependencies": {
+    "vite": "^7.3.0"
+  },
+  "engines": {"node": ">=22.0.0"}
+}
