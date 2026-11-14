@@ -48,7 +48,8 @@ svg {width:20px;height:20px;stroke:currentColor;stroke-width:1.75;stroke-linecap
 .nav-link.active svg {color:var(--accent)}
 .sidebar-bottom {display:flex;flex-direction:column;gap:16px;margin-top:auto;padding:0 11px 2px;color:var(--quiet);font-size:12px}
 .sidebar-bottom-line {height:1px;background:var(--outline)}
-.content-shell {min-width:0}
+.content-shell {min-width:0;min-height:100vh;display:flex;flex-direction:column}
+.content-shell main {flex:1;width:100%}
 .topbar {height:90px;display:flex;justify-content:space-between;align-items:center;gap:20px;padding:0 51px;border-bottom:1px solid var(--outline)}
 .breadcrumb {display:flex;align-items:center;gap:8px;color:var(--quiet);font-size:13px}
 .breadcrumb strong {font-weight:500;color:var(--muted)}
@@ -307,3 +308,9 @@ h1 {font-size:clamp(29px,3vw,38px);line-height:1.12;font-weight:630;letter-spaci
 body:not(.drawer-open) .drawer-backdrop {pointer-events:none}
 }
 @media (max-width:700px) {.scope-note {font-size:11px}}
+
+/* Quiet product credit. */
+.app-credit {padding:0 51px 22px;color:var(--quiet);font-size:11px;line-height:1.5;letter-spacing:0}
+@media(max-width:1250px) {.app-credit {padding-inline:32px}}
+@media(max-width:700px) {.app-credit {padding:0 20px 18px}}
+@media print {.app-credit {display:none!important}}
