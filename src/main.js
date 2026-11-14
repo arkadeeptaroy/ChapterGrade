@@ -11,7 +11,7 @@ const familiarLists = {
   'dale-chall': new Set(daleChall.map(w => w.toLowerCase()))
 };
 const MAX_TEXT_CHARS = 1000000;
-const state = {sourceName: '', sourceType: 'PASTED TEXT', extractedWarnings: [], analysis: null, expanded: false, requestId: 0, processing: false, analysing: false};
+const state = {sourceName: '', sourceType: 'PASTED TEXT', extractedWarnings: [], analysis: null, expanded: false, requestId: 0, processing: false, analysing: false, subject: ''};
 const nf = new Intl.NumberFormat('en');
 const escapeHTML = value => String(value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
@@ -170,15 +170,15 @@ function renderResult(result) {
   $('assessment-row').classList.remove('hidden');
   $('assessment-count').textContent = '1 chapter';
   $('row-file').textContent = state.sourceName || 'Pasted chapter';
-  $('row-date').textContent = new Date().toLocaleDateString('en-GB', {day:'numeric', month:'short', year:'numeric'});
+  $('row-date').textContent = [state.subject, new Date().toLocaleDateString('en-GB', {day:'numeric', month:'short', year:'numeric'})].filter(Boolean).join(' · ');
   $('row-grade').textContent = `Grade ${result.grade}`;
   $('row-method').textContent = result.method === 'spache' ? 'Spache' : 'Dale–Chall';
   $('row-status').className = `row-outcome ${result.suitability.status}`;
   $('row-status').textContent = result.suitability.label;
-  $('results-description').textContent = `Grade ${result.grade} · ${state.sourceName || 'Pasted reading passage'}`;
+  $('results-description').textContent = [state.subject, `Grade ${result.grade}`, state.sourceName || 'Pasted chapter'].filter(Boolean).join(' · ');
 
   $('report-date').textContent = new Date().toLocaleDateString('en-GB', {day:'2-digit',month:'short',year:'numeric'}).toUpperCase();
-  $('report-file').textContent = state.sourceName || 'Pasted reading passage';
+  $('report-file').textContent = [state.subject, state.sourceName || 'Pasted chapter'].filter(Boolean).join(' · ');
   $('report-grade').textContent = `Grade ${result.grade} assessment`;
   const badge = $('report-status');
   badge.className = `status-badge ${result.suitability.status}`;
@@ -211,6 +211,7 @@ async function runAnalysis() {
     const grade = Number($('grade-select').value);
     const method = currentMethod();
     const text = $('chapter-text').value;
+    state.subject = $('subject-select').value;
     const result = analyzeReadability(text, grade, method, familiarLists[method]);
     state.analysis = result;
     state.expanded = false;
@@ -245,7 +246,7 @@ function downloadCSV() {
   const r = state.analysis;
   if (!r) return;
   const rows = [
-    ['CHAPTERGRADE READABILITY REPORT',''],['Source file',state.sourceName || 'Pasted text'],['Target grade',r.grade],
+    ['CHAPTERGRADE READABILITY REPORT',''],['Source file',state.sourceName || 'Pasted text'],['Subject',state.subject || 'Not specified'],['Target grade',r.grade],
     ['Method',r.method],['Score',r.score.toFixed(3)],['Estimated reading band',gradeBandDisplay(r)],
     ['Suitability',r.suitability.label],['Interpretation',r.suitability.detail],['Words analysed',r.wordCount],
     ['Sentences',r.sentenceCount],['Average sentence length',r.averageSentenceLength],
@@ -261,7 +262,7 @@ function downloadCSV() {
 function downloadJSON() {
   const r = state.analysis;
   if (!r) return;
-  downloadFile(`${filenameBase()}-grade-${r.grade}-readability.json`, JSON.stringify({app:'ChapterGrade',version:'1.0',date:new Date().toISOString(),source:state.sourceName || 'Pasted text',sourceType:state.sourceType,extractionWarnings:state.extractedWarnings,...r},null,2), 'application/json;charset=utf-8');
+  downloadFile(`${filenameBase()}-grade-${r.grade}-readability.json`, JSON.stringify({app:'ChapterGrade',version:'1.0',date:new Date().toISOString(),source:state.sourceName || 'Pasted text',sourceType:state.sourceType,subject:state.subject,extractionWarnings:state.extractedWarnings,...r},null,2), 'application/json;charset=utf-8');
 }
 
 $('dropzone').addEventListener('click', () => $('file-input').click());
@@ -271,6 +272,7 @@ $('dropzone').addEventListener('dragleave', () => $('dropzone').classList.remove
 $('dropzone').addEventListener('drop', e => {e.preventDefault(); $('dropzone').classList.remove('drag-over'); if (e.dataTransfer.files.length) loadFile(e.dataTransfer.files[0]);});
 $('file-input').addEventListener('change', e => {if(e.target.files.length)loadFile(e.target.files[0]);e.target.value='';});
 $('paste-toggle').addEventListener('click', () => {showEditor();$('chapter-text').focus();});
+$('subject-select').addEventListener('change', clearReport);
 $('grade-select').addEventListener('change', updateMethod);
 $('method-select').addEventListener('change', updateMethod);
 $('chapter-text').addEventListener('input', () => {if (!state.sourceName && $('chapter-text').value.trim()) state.sourceType='PASTED TEXT'; updateTextCount();});
@@ -283,6 +285,7 @@ function resetAssessment() {
   ++state.requestId;
   state.sourceName = '';
   state.sourceType = 'PASTED TEXT';
+  state.subject = '';
   state.extractedWarnings = [];
   state.processing = false;
   state.analysing = false;
@@ -293,6 +296,7 @@ function resetAssessment() {
   $('paste-toggle').querySelector('span').textContent = 'Paste chapter text';
   $('source-meta').classList.add('hidden');
   $('extraction-feedback').classList.add('hidden');
+  $('subject-select').value = '';
   $('grade-select').value = '5';
   $('method-select').value = 'auto';
   updateMethod();
@@ -327,4 +331,4 @@ document.addEventListener('keydown', event => {
 });
 updateMethod();
 updateTextCount();
-setDrawer(true);
+setDrawer(false);

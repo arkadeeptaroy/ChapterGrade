@@ -4,9 +4,9 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="theme-color" content="#000000" />
-  <meta name="description" content="Check an English chapter's reading level using Spache and Dale–Chall." />
+  <meta name="description" content="Assess the reading level of English-language chapter text across school subjects using Spache and Dale–Chall." />
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-  <title>ChapterGrade — Chapter assessments</title>
+  <title>ChapterGrade — Chapter readability</title>
 </head>
 <body>
   <div class="application">
@@ -30,14 +30,14 @@
       </header>
       <main>
         <section class="overview" id="workspace">
-          <div class="page-header"><div><h1>Chapter assessments</h1><p>Reading-level analysis for English textbook chapters.</p></div></div>
+          <div class="page-header"><div><h1>Chapter assessments</h1><p>Readability analysis for chapters across subjects.</p></div></div>
           <div class="workspace-card" id="assessment-overview">
             <div class="workspace-card-head"><h2>Assessments</h2><span id="assessment-count" class="assessment-count">0 chapters</span></div>
             <div class="table-header"><span>CHAPTER</span><span>TARGET</span><span>METHOD</span><span>READABILITY</span><span></span></div>
             <div id="list-empty" class="list-empty">
               <span class="empty-file-icon" aria-hidden="true"><svg viewBox="0 0 48 48" fill="none"><path d="M14 7h13l9 9v23a3 3 0 0 1-3 3H14a3 3 0 0 1-3-3V10a3 3 0 0 1 3-3Z"/><path d="M27 7v10h9M17 24h13M17 30h13M17 36h8"/></svg></span>
               <h3>No assessments yet</h3>
-              <p>Your chapter analysis will appear here.</p>
+              <p>Upload a chapter from any subject to begin a reading-level assessment.</p>
               <button type="button" class="empty-cta" id="open-upload-inline">Upload a chapter <svg viewBox="0 0 24 24" fill="none"><path d="M5 12h14m-7-7 7 7-7 7"/></svg></button>
             </div>
             <div id="assessment-row" class="assessment-row hidden">
@@ -71,14 +71,14 @@
           </section>
         </section>
 
-        <section class="methodology hidden" id="methods" aria-labelledby="methods-heading"><div class="section-title-row"><div><h2 id="methods-heading">Scoring methods</h2><p>How the reading levels are estimated.</p></div></div><div class="method-grid"><article class="method-card"><h3>Spache</h3><p>Grades 1–4. Estimates a reading grade using average sentence length and distinct unfamiliar words in sentence-aligned passages.</p><code>0.659 + 0.121 × ASL + 0.082 × PUW</code></article><article class="method-card"><h3>Dale–Chall</h3><p>Grades 5–12. Uses sentence length and the percentage of unfamiliar-word occurrences to estimate a reading-grade band.</p><code>0.1579 × PDW + 0.0496 × ASL + adjustment</code></article></div></section>
+        <section class="methodology hidden" id="methods" aria-labelledby="methods-heading"><div class="section-title-row"><div><h2 id="methods-heading">Scoring methods</h2><p>English-language prose in any school subject.</p></div></div><div class="method-grid"><article class="method-card"><h3>Spache</h3><p>Grades 1–4. Estimates a reading grade using average sentence length and distinct unfamiliar words in sentence-aligned passages.</p><code>0.659 + 0.121 × ASL + 0.082 × PUW</code></article><article class="method-card"><h3>Dale–Chall</h3><p>Grades 5–12. Uses sentence length and the percentage of unfamiliar-word occurrences to estimate a reading-grade band.</p><code>0.1579 × PDW + 0.0496 × ASL + adjustment</code></article></div></section>
       </main>
     </div>
   </div>
 
   <div class="drawer-backdrop" id="drawer-backdrop"></div>
   <aside class="upload-drawer" id="upload-drawer" role="dialog" aria-modal="true" aria-labelledby="upload-title" aria-describedby="upload-description">
-    <div class="drawer-header"><div><h2 id="upload-title">Upload a chapter</h2><p id="upload-description">Choose a file or paste the chapter text.</p></div><button id="drawer-close" type="button" class="icon-button" aria-label="Close upload panel"><svg viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
+    <div class="drawer-header"><div><h2 id="upload-title">Upload a chapter</h2><p id="upload-description">Choose a chapter from any subject.</p></div><button id="drawer-close" type="button" class="icon-button" aria-label="Close upload panel"><svg viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
     <div class="drawer-scroll">
       <section class="upload-section">
         <input id="file-input" type="file" accept=".pdf,.docx,.txt,.text,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain" hidden />
@@ -94,9 +94,11 @@
       </section>
       <div class="section-separator"></div>
       <section class="settings-section" aria-labelledby="settings-title"><h3 id="settings-title">Assessment settings</h3>
+        <div class="select-field"><label for="subject-select">Subject <span class="optional-label">(optional)</span></label><div class="select-wrap"><select id="subject-select"><option value="">Select subject</option><option value="English">English</option><option value="Mathematics">Mathematics</option><option value="Science">Science</option><option value="Environmental Studies">Environmental Studies</option><option value="Social Studies">Social Studies</option><option value="Computer Science &amp; AI">Computer Science &amp; AI</option><option value="Other">Other</option></select><svg viewBox="0 0 24 24" fill="none"><path d="m6 9 6 6 6-6"/></svg></div></div>
         <div class="select-field"><label for="grade-select">Target grade</label><div class="select-wrap"><select id="grade-select"><option value="1">Grade 1</option><option value="2">Grade 2</option><option value="3">Grade 3</option><option value="4">Grade 4</option><option value="5" selected>Grade 5</option><option value="6">Grade 6</option><option value="7">Grade 7</option><option value="8">Grade 8</option><option value="9">Grade 9</option><option value="10">Grade 10</option><option value="11">Grade 11</option><option value="12">Grade 12</option></select><svg viewBox="0 0 24 24" fill="none"><path d="m6 9 6 6 6-6"/></svg></div></div>
         <div class="select-field"><label for="method-select">Readability formula</label><div class="select-wrap"><select id="method-select"><option value="auto">Automatic</option><option value="spache">Spache</option><option value="dale-chall">Dale–Chall</option></select><svg viewBox="0 0 24 24" fill="none"><path d="m6 9 6 6 6-6"/></svg></div></div>
         <div class="method-note"><div><strong id="method-pill">DALE–CHALL</strong><span id="method-description"></span></div><p id="method-explanation"></p></div>
+        <p class="scope-note">Scores English-language prose in any subject, not equations, code, diagrams or subject accuracy.</p>
       </section>
     </div>
     <div class="drawer-footer"><button class="analyse-button" id="analyze-btn" type="button" disabled><span id="analyze-label">Analyse chapter</span><svg id="analyze-arrow" viewBox="0 0 24 24" fill="none"><path d="M5 12h14m-7-7 7 7-7 7"/></svg><span class="inline-spinner hidden" id="analyze-spinner" aria-hidden="true"></span></button><p id="analysis-helper">Upload a chapter or paste at least 30 words.</p></div>

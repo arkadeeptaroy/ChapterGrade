@@ -1,6 +1,6 @@
 # ChapterGrade
 
-Client-side readability screening for English textbook chapters. Supports PDF, DOCX, TXT and pasted text.
+Client-side readability screening for English-language prose in chapters across school subjects. Supports PDF, DOCX, TXT and pasted text.
 
 ## Stack
 
@@ -35,3 +35,5 @@ PDF: 800 MiB, processed with PDF.js file-range reads. DOCX/TXT: 40 MiB. Up to 25
 ## Scoring
 
 Grades 1–4: revised Spache. Grades 5–12: classic Dale–Chall. Formula selection can be overridden in the UI. Scores are readability estimates, not curriculum validation.
+
+The subject selector is descriptive metadata; Spache and Dale–Chall remain English prose readability measures and do not evaluate equations, diagrams, code, or curriculum accuracy.
